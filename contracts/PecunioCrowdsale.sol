@@ -1,22 +1,22 @@
 pragma solidity ^0.4.7;
 
 import "./Crowdsale.sol";
-import "./MysteriumPricing.sol";
+import "./PecunioPricing.sol";
 import "./MintableToken.sol";
 
 
-contract MysteriumCrowdsale is Crowdsale {
+contract PecunioCrowdsale is Crowdsale {
   using SafeMathLib for uint;
 
   // Are we on the "end slope" (triggered after soft cap)
   bool public softCapTriggered;
 
-  // The default minimum funding limit 7,000,000 CHF
-  uint public minimumFundingCHF = 700000 * 10000;
+  // The default minimum funding limit 7,000,000 USD
+  uint public minimumFundingUSD = 700000 * 10000;
 
-  uint public hardCapCHF = 14000000 * 10000;
+  uint public hardCapUSD = 14000000 * 10000;
 
-  function MysteriumCrowdsale(address _token, PricingStrategy _pricingStrategy, address _multisigWallet, uint _start, uint _end)
+  function PecunioCrowdsale(address _token, PricingStrategy _pricingStrategy, address _multisigWallet, uint _start, uint _end)
     Crowdsale(_token, _pricingStrategy, _multisigWallet, _start, _end, 0) {
   }
 
@@ -25,7 +25,7 @@ contract MysteriumCrowdsale is Crowdsale {
     if(softCapTriggered)
       throw;
 
-    uint softCap = MysteriumPricing(pricingStrategy).getSoftCapInWeis();
+    uint softCap = PecunioPricing(pricingStrategy).getSoftCapInWeis();
 
     if(softCap > weiRaised)
       throw;
@@ -43,7 +43,7 @@ contract MysteriumCrowdsale is Crowdsale {
    */
   function onInvest() internal {
      if(!softCapTriggered) {
-         uint softCap = MysteriumPricing(pricingStrategy).getSoftCapInWeis();
+         uint softCap = PecunioPricing(pricingStrategy).getSoftCapInWeis();
          if(weiRaised > softCap) {
            triggerSoftCap();
          }
@@ -54,14 +54,14 @@ contract MysteriumCrowdsale is Crowdsale {
    * Get minimum funding goal in wei.
    */
   function getMinimumFundingGoal() public constant returns (uint goalInWei) {
-    return MysteriumPricing(pricingStrategy).convertToWei(minimumFundingCHF);
+    return PecunioPricing(pricingStrategy).convertToWei(minimumFundingUSD);
   }
 
   /**
    * Allow reset the threshold.
    */
-  function setMinimumFundingLimit(uint chf) onlyOwner {
-    minimumFundingCHF = chf;
+  function setMinimumFundingLimit(uint usd) onlyOwner {
+    minimumFundingUSD = usd;
   }
 
   /**
@@ -72,16 +72,16 @@ contract MysteriumCrowdsale is Crowdsale {
   }
 
   function getHardCap() public constant returns (uint capInWei) {
-    return MysteriumPricing(pricingStrategy).convertToWei(hardCapCHF);
+    return PecunioPricing(pricingStrategy).convertToWei(hardCapUSD);
   }
 
   /**
    * Reset hard cap.
    *
-   * Give price in CHF * 10000
+   * Give price in USD * 10000
    */
-  function setHardCapCHF(uint _hardCapCHF) onlyOwner {
-    hardCapCHF = _hardCapCHF;
+  function setHardCapUSD(uint _hardCapUSD) onlyOwner {
+    hardCapUSD = _hardCapUSD;
   }
 
   /**
@@ -99,7 +99,7 @@ contract MysteriumCrowdsale is Crowdsale {
    * @return true we have reached our soft cap
    */
   function isSoftCapReached() public constant returns (bool reached) {
-    return weiRaised >= MysteriumPricing(pricingStrategy).getSoftCapInWeis();
+    return weiRaised >= PecunioPricing(pricingStrategy).getSoftCapInWeis();
   }
 
 

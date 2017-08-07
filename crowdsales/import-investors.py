@@ -15,7 +15,7 @@ account = "0x"  # Our controller account on Kovan
 def import_investor_data(contract: Contract, deploy_address: str, fname: str):
     """Load investor data to a MultiVault contract.
 
-    Mysterium specific data loader.
+    Pecunio specific data loader.
 
     :return: List of unconfirmed transaction ids
     """

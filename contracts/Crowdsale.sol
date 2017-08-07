@@ -116,7 +116,7 @@ contract Crowdsale is Haltable {
   function Crowdsale(address _token, PricingStrategy _pricingStrategy, address _multisigWallet, uint _start, uint _end, uint _minimumFundingGoal) {
 
     if(_minimumFundingGoal != 0) {
-      // Mysterium specific fix to allow funding goal only be set in CHF
+      // Pecunio specific fix to allow funding goal only be set in USD
     }
 
     owner = msg.sender;

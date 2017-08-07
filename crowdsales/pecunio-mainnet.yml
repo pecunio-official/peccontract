@@ -1,6 +1,6 @@
-kovan:
+mainnet:
 
-    chain: kovan
+    chain: mainnet
 
     verify_on_etherscan: yes
 
@@ -25,7 +25,7 @@ kovan:
         team_multisig_foundation:
             contract_name: MultiSigWallet
             contract_file: GnosisWallet.sol
-            address: "0xe18ce35060f39ed5c68b92629230aadcd79ea6e3"
+            address: "0xE18cE35060f39eD5c68B92629230aadcD79eA6E3"
 
         #
         # Token contract
@@ -50,48 +50,65 @@ kovan:
         # Pricing strategy
         #
         pricing_strategy:
-            contract_name: MysteriumPricing
-            contract_file: MysteriumPricing.sol
+            contract_name: PecunioPricing
+            contract_file: PecunioPricing.sol
             arguments:
-                initialChfRate: "{{ 188 * 10000 }}"
+                initialUsdRate: "{{ 184 * 10000 }}"
 
         #
-        # Intermediate vault to hold team funds for 4 weeks
+        # Intermediate vault to hold team funds for 2 weeks,
+        # then forwrads to funds wallet
         #
         intermediate_vault:
             contract_name: IntermediateVault
             contract_file: IntermediateVault.sol
             arguments:
                 _teamMultisig: "{{ contracts.team_multisig_funds.address }}"
-                _unlockedAt: "{{ 1 }}"  # TODO
+                _unlockedAt: "{{ timestamp(datetime(2017, 5, 30, 13, 00)) + 14*24*3600 }}"
 
+        #
+        # Seed vault 1 locked for 2 days.
+        # 2 days is nomimal time.
+        # (tokens claimable after owner releases the token)
+        #
         seed_participant_vault:
             contract_name: MultiVault
             contract_file: MultiVault.sol
             arguments:
                 _owner: "{{ deploy_address }}"
-                _freezeEndsAt: "{{ 1 }}"  # TODO
+                _freezeEndsAt: "{{ timestamp(datetime(2017, 5, 30, 13, 00)) + 2*24*3600 }}"
 
+        #
+        # Seed vault 2 locked for 12 months
+        #
         seed_participant_vault_2:
             contract_name: MultiVault
             contract_file: MultiVault.sol
             arguments:
                 _owner: "{{ deploy_address }}"
-                _freezeEndsAt: "{{ time() + 12*30*24*3600 }}"  # 12 months
+                _freezeEndsAt: "{{ timestamp(datetime(2017, 5, 30, 13, 00)) + 12*30*24*3600 }}"  # 12 months
 
+        #
+        # Founder vault holds founder tokens for 12 months.
+        # It
+        #
         founders_vault:
             contract_name: MultiVault
             contract_file: MultiVault.sol
             arguments:
                 _owner: "{{ deploy_address }}"
-                _freezeEndsAt: "{{ 1 }}"  # TODO
+                _freezeEndsAt: "{{ timestamp(datetime(2017, 5, 30, 13, 00)) + 12*30*24*3600  }}"
 
+        #
+        # Future funding vault 100% owner by foundation wallet,
+        # as set later
+        #
         future_funding_vault:
             contract_name: MultiVault
             contract_file: MultiVault.sol
             arguments:
                 _owner: "{{ deploy_address }}"
-                _freezeEndsAt: "{{ 1 }}"  # TODO
+                _freezeEndsAt: "{{ timestamp(datetime(2017, 5, 30, 13, 00)) + 12*30*24*3600  }}"
 
         # Crowdsale
         #
@@ -103,26 +120,26 @@ kovan:
         #
         #
         crowdsale:
-            contract_name: MysteriumCrowdsale
-            contract_file: MysteriumCrowdsale.sol
+            contract_name: PecunioCrowdsale
+            contract_file: PecunioCrowdsale.sol
             arguments:
                 _token: "{{contracts.token.address}}"
                 _pricingStrategy: "{{contracts.pricing_strategy.address}}"
-                _multisigWallet: "{{contracts.intermediate_vault.address}}"
-                _start: "{{ timestamp(datetime(2000, 5, 30, 13, 00)) }}"  # TODO: non-final testing time
-                _end: "{{ timestamp(datetime(2017, 6, 30, 13, 00)) }}"
+                _multisigWallet: "{{contracts.intermediate_vault.address}}"  # We lock up funds for 2 weeks
+                _start: "{{ timestamp(datetime(2017, 5, 30, 13, 00)) }}"
+                _end: "{{ timestamp(datetime(2017, 5, 30, 13, 00)) + 14*24*3600 }}"
         #
         # At the end of the crowdsale
         # sold tokens: 30%
         # team tokens: 70%
         #
         token_distribution:
-            contract_name: MysteriumTokenDistribution
-            contract_file: MysteriumTokenDistribution.sol
+            contract_name: PecunioTokenDistribution
+            contract_file: PecunioTokenDistribution.sol
             arguments:
                 _token: "{{contracts.token.address}}"
                 _crowdsale: "{{contracts.crowdsale.address}}"
-                _mysteriumPricing: "{{contracts.pricing_strategy.address}}"
+                _pecunioPricing: "{{contracts.pricing_strategy.address}}"
 
     # Post-deployment actions connect contracts together.
     post_actions: |
@@ -140,14 +157,13 @@ kovan:
         # Set token upgrade master to team multisig to give the new token path
         confirm_tx(token.transact({"from": deploy_address}).setUpgradeMaster(team_multisig_funds.address))
 
-        # Allow pricing strategy to read crowdsale for the CHF rate chec
+        # Allow pricing strategy to read crowdsale for the USD rate chec
         confirm_tx(pricing_strategy.transact({"from": deploy_address}).setCrowdsale(crowdsale.address))
 
-        # Allow test buys from these accounts before crowdsale begins
+        # Allow test buys from these accounts before token sale begins
         confirm_multiple_txs( \
           crowdsale.transact({"from": deploy_address}).setEarlyParicipantWhitelist(deploy_address, True), \
           crowdsale.transact({"from": deploy_address}).setEarlyParicipantWhitelist("0x1c5e4db864861D9b6203bd86Af0C0B5ffcD6115d", True), \
-          crowdsale.transact({"from": deploy_address}).setEarlyParicipantWhitelist("0x73cd5cb24682239cF38732B3740a193cf6CE83ac", True), \
         )
 
         # Set token distribution model
@@ -175,11 +191,14 @@ kovan:
         # Load vault participant data
         #
 
-        # Founders vault goes 100% to team multisig
+        # Future funding vault goes 100% to foundation address
         confirm_multiple_txs( \
-          founders_vault.transact({"from": deploy_address}).addInvestor(team_multisig_funds.address, 100), \
           future_funding_vault.transact({"from": deploy_address}).addInvestor(team_multisig_foundation.address, 100), \
         )
+
+        #
+        # Seed vault data is loaded after the deployment is done
+        #
 
         # Do not load during the deployment. Takes 33 txs that may risk the deployment. Load separately.
         # Seed vault 1
@@ -189,6 +208,11 @@ kovan:
         # TODO - using a test value as one address
         # confirm_multiple_txs(*load_investor_data(seed_participant_vault_2, deploy_address, "fake_seed_investor_data.csv"))
 
+        #
+        # Founder vault
+        # TODO
+        #
+
     # Sanity check
     verify_actions: |
         assert token.call().owner().lower() == deploy_address.lower()
@@ -197,7 +221,11 @@ kovan:
         assert token_distribution.call().isSane()
         assert crowdsale.call().getState() in (CrowdsaleState.PreFunding, CrowdsaleState.Funding)
 
+        # Do a test buy
+        confirm_tx(crowdsale.transact({"from": deploy_address, "value": to_wei("0.01", "ether")}).buy())
+
         # As the last action, after successful deployment, set the right token symbol and name so that it shows in a blockchain explorer
-        confirm_tx(token.transact({"from": deploy_address}).setTokenInformation("Xterium", "XXX"))
+        confirm_tx(token.transact({"from": deploy_address}).setTokenInformation("Pecunio", "MYST"))
+
 
 

@@ -50,10 +50,10 @@ kovan:
         # Pricing strategy
         #
         pricing_strategy:
-            contract_name: MysteriumPricing
-            contract_file: MysteriumPricing.sol
+            contract_name: PecunioPricing
+            contract_file: PecunioPricing.sol
             arguments:
-                initialChfRate: "{{ 188 * 10000 }}"
+                initialUsdRate: "{{ 188 * 10000 }}"
 
         #
         # Intermediate vault to hold team funds for 4 weeks
@@ -103,8 +103,8 @@ kovan:
         #
         #
         crowdsale:
-            contract_name: MysteriumCrowdsale
-            contract_file: MysteriumCrowdsale.sol
+            contract_name: PecunioCrowdsale
+            contract_file: PecunioCrowdsale.sol
             arguments:
                 _token: "{{contracts.token.address}}"
                 _pricingStrategy: "{{contracts.pricing_strategy.address}}"
@@ -117,12 +117,12 @@ kovan:
         # team tokens: 70%
         #
         token_distribution:
-            contract_name: MysteriumTokenDistribution
-            contract_file: MysteriumTokenDistribution.sol
+            contract_name: PecunioTokenDistribution
+            contract_file: PecunioTokenDistribution.sol
             arguments:
                 _token: "{{contracts.token.address}}"
                 _crowdsale: "{{contracts.crowdsale.address}}"
-                _mysteriumPricing: "{{contracts.pricing_strategy.address}}"
+                _pecunioPricing: "{{contracts.pricing_strategy.address}}"
 
     # Post-deployment actions connect contracts together.
     post_actions: |
@@ -140,7 +140,7 @@ kovan:
         # Set token upgrade master to team multisig to give the new token path
         confirm_tx(token.transact({"from": deploy_address}).setUpgradeMaster(team_multisig_funds.address))
 
-        # Allow pricing strategy to read crowdsale for the CHF rate chec
+        # Allow pricing strategy to read crowdsale for the USD rate chec
         confirm_tx(pricing_strategy.transact({"from": deploy_address}).setCrowdsale(crowdsale.address))
 
         # Allow test buys from these accounts before crowdsale begins

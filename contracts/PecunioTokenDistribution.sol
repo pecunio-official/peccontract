@@ -3,7 +3,7 @@ pragma solidity ^0.4.6;
 import "./Crowdsale.sol";
 import "./CrowdsaleToken.sol";
 import "./SafeMathLib.sol";
-import "./MysteriumPricing.sol";
+import "./PecunioPricing.sol";
 import "zeppelin/contracts/ownership/Ownable.sol";
 
 /**
@@ -12,14 +12,14 @@ import "zeppelin/contracts/ownership/Ownable.sol";
  * Unlock tokens.
  *
  */
-contract MysteriumTokenDistribution is FinalizeAgent, Ownable {
+contract PecunioTokenDistribution is FinalizeAgent, Ownable {
 
   using SafeMathLib for uint;
 
   CrowdsaleToken public token;
   Crowdsale public crowdsale;
 
-  MysteriumPricing public mysteriumPricing;
+  PecunioPricing public pecunioPricing;
 
   // Vaults:
   address futureRoundVault;
@@ -35,7 +35,7 @@ contract MysteriumTokenDistribution is FinalizeAgent, Ownable {
   uint public seed_coins_vault1;
   uint public seed_coins_vault2;
 
-  function MysteriumTokenDistribution(CrowdsaleToken _token, Crowdsale _crowdsale, MysteriumPricing _mysteriumPricing) {
+  function PecunioTokenDistribution(CrowdsaleToken _token, Crowdsale _crowdsale, PecunioPricing _pecunioPricing) {
     token = _token;
     crowdsale = _crowdsale;
 
@@ -44,7 +44,7 @@ contract MysteriumTokenDistribution is FinalizeAgent, Ownable {
       throw;
     }
 
-    mysteriumPricing = _mysteriumPricing;
+    pecunioPricing = _pecunioPricing;
   }
 
   /**
@@ -52,7 +52,7 @@ contract MysteriumTokenDistribution is FinalizeAgent, Ownable {
    *
    * Exposed as public to make it testable.
    */
-  function distribute(uint amount_raised_chf, uint eth_chf_price) {
+  function distribute(uint amount_raised_usd, uint eth_usd_price) {
 
     // Only crowdsale contract or owner (manually) can trigger the distribution
     if(!(msg.sender == address(crowdsale) || msg.sender == owner)) {
@@ -99,9 +99,9 @@ contract MysteriumTokenDistribution is FinalizeAgent, Ownable {
     return true;
   }
 
-  function getDistributionFacts() public constant returns (uint chfRaised, uint chfRate) {
-    uint _chfRate = mysteriumPricing.getEthChfPrice();
-    return(crowdsale.weiRaised().times(_chfRate) / (10**18), _chfRate);
+  function getDistributionFacts() public constant returns (uint usdRaised, uint usdRate) {
+    uint _usdRate = pecunioPricing.getEthUsdPrice();
+    return(crowdsale.weiRaised().times(_usdRate) / (10**18), _usdRate);
   }
 
   /** Called once by crowdsale finalize() if the sale was success. */
@@ -110,8 +110,8 @@ contract MysteriumTokenDistribution is FinalizeAgent, Ownable {
     if(msg.sender == address(crowdsale) || msg.sender == owner) {
       // The owner can distribute tokens for testing and in emergency
       // Crowdsale distributes tokens at the end of the crowdsale
-      var (chfRaised, chfRate) = getDistributionFacts();
-      distribute(chfRaised, chfRate);
+      var (usdRaised, usdRate) = getDistributionFacts();
+      distribute(usdRaised, usdRate);
     } else {
        throw;
     }

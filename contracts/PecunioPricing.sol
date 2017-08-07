@@ -8,29 +8,29 @@ import "zeppelin/contracts/ownership/Ownable.sol";
 /**
  * Fixed crowdsale pricing - everybody gets the same price.
  */
-contract MysteriumPricing is PricingStrategy, Ownable {
+contract PecunioPricing is PricingStrategy, Ownable {
 
   using SafeMathLib for uint;
 
-  // The conversion rate: how many weis is 1 CHF
-  // https://www.coingecko.com/en/price_charts/ethereum/chf
-  // 120.34587901 is 1203458
-  uint public chfRate;
+  // The conversion rate: how many weis is 1 USD
+  // https://www.coingecko.com/en/price_charts/ethereum/usd
+  // 120.34587901 is 1203458 (for USD)
+  uint public usdRate;
 
-  uint public chfScale = 10000;
+  uint public usdScale = 10000;
 
   /* How many weis one token costs */
   uint public hardCapPrice = 12000;  // 1.2 * 10000 Expressed as CFH base points
 
   uint public softCapPrice = 10000;  // 1.0 * 10000 Expressed as CFH base points
 
-  uint public softCapCHF = 6000000 * 10000; // Soft cap set in CHF
+  uint public softCapUSD = 6000000 * 10000; // Soft cap set in USD
 
   //Address of the ICO contract:
   Crowdsale public crowdsale;
 
-  function MysteriumPricing(uint initialChfRate) {
-    chfRate = initialChfRate;
+  function PecunioPricing(uint initialUsdRate) {
+    usdRate = initialUsdRate;
   }
 
   /// @dev Setting crowdsale for setConversionRate()
@@ -44,45 +44,45 @@ contract MysteriumPricing is PricingStrategy, Ownable {
     crowdsale = _crowdsale;
   }
 
-  /// @dev Here you can set the new CHF/ETH rate
-  /// @param _chfRate The rate how many weis is one CHF
-  function setConversionRate(uint _chfRate) onlyOwner {
+  /// @dev Here you can set the new USD/ETH rate
+  /// @param _usdRate The rate how many weis is one USD
+  function setConversionRate(uint _usdRate) onlyOwner {
     //Here check if ICO is active
     if(now > crowdsale.startsAt())
       throw;
 
-    chfRate = _chfRate;
+    usdRate = _usdRate;
   }
 
   /**
    * Allow to set soft cap.
    */
-  function setSoftCapCHF(uint _softCapCHF) onlyOwner {
-    softCapCHF = _softCapCHF;
+  function setSoftCapUSD(uint _softCapUSD) onlyOwner {
+    softCapUSD = _softCapUSD;
   }
 
   /**
-   * Get CHF/ETH pair as an integer.
+   * Get USD/ETH pair as an integer.
    *
    * Used in distribution calculations.
    */
-  function getEthChfPrice() public constant returns (uint) {
-    return chfRate / chfScale;
+  function getEthUsdPrice() public constant returns (uint) {
+    return usdRate / usdScale;
   }
 
   /**
    * Currency conversion
    *
-   * @param  chf CHF price * 100000
+   * @param  usd USD price * 100000
    * @return wei price
    */
-  function convertToWei(uint chf) public constant returns(uint) {
-    return chf.times(10**18) / chfRate;
+  function convertToWei(uint usd) public constant returns(uint) {
+    return usd.times(10**18) / usdRate;
   }
 
-  /// @dev Function which tranforms CHF softcap to weis
+  /// @dev Function which tranforms USD softcap to weis
   function getSoftCapInWeis() public returns (uint) {
-    return convertToWei(softCapCHF);
+    return convertToWei(softCapUSD);
   }
 
   /**
